@@ -43,6 +43,8 @@ class TripConditionsIn(BaseModel):
     weather: WeatherCondition
     road_state: RoadState
     heavy_traffic: bool = False
+    latitude: float | None = None
+    longitude: float | None = None
 
 
 # --- Réponse renvoyée à l'app mobile ---

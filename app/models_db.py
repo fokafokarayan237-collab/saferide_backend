@@ -35,6 +35,9 @@ class Evaluation(Base):
     weather: Mapped[str] = mapped_column(String(20))
     road_state: Mapped[str] = mapped_column(String(10))
     heavy_traffic: Mapped[bool] = mapped_column(Boolean, default=False)
+    heavy_traffic: Mapped[bool] = mapped_column(Boolean, default=False)
+    latitude: Mapped[float | None] = mapped_column(Float, nullable=True)
+    longitude: Mapped[float | None] = mapped_column(Float, nullable=True)
 
     # Résultat
     score: Mapped[float] = mapped_column(Float)
