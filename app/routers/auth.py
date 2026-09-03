@@ -3,20 +3,26 @@ from sqlalchemy.orm import Session
 
 from app.database import get_db
 from app.models_db import User
-from app.schemas import LoginIn, LoginOut
+from app.schemas import LoginIn, LoginOut, RegisterIn
 from app.security import create_access_token, hash_password, verify_password
 
 router = APIRouter(prefix="/auth", tags=["auth"])
 
 
 @router.post("/register", response_model=LoginOut)
-def register(credentials: LoginIn, db: Session = Depends(get_db)) -> LoginOut:
-    existing = db.query(User).filter(User.phone == credentials.phone).first()
-    if existing:
+def register(credentials: RegisterIn, db: Session = Depends(get_db)) -> LoginOut:
+    existing_phone = db.query(User).filter(User.phone == credentials.phone).first()
+    if existing_phone:
         raise HTTPException(status_code=409, detail="Ce numéro est déjà utilisé.")
+
+    if credentials.email:
+        existing_email = db.query(User).filter(User.email == credentials.email).first()
+        if existing_email:
+            raise HTTPException(status_code=409, detail="Cet email est déjà utilisé.")
 
     user = User(
         phone=credentials.phone,
+        email=credentials.email,
         hashed_password=hash_password(credentials.password),
     )
     db.add(user)

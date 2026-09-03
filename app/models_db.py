@@ -11,6 +11,7 @@ class User(Base):
 
     id: Mapped[int] = mapped_column(Integer, primary_key=True, index=True)
     phone: Mapped[str] = mapped_column(String(20), unique=True, index=True)
+    email: Mapped[str | None] = mapped_column(String(255), unique=True, nullable=True, index=True)
     hashed_password: Mapped[str] = mapped_column(String(255))
     created_at: Mapped[datetime] = mapped_column(
         DateTime, default=lambda: datetime.now(timezone.utc)
@@ -34,7 +35,6 @@ class Evaluation(Base):
     time_of_day: Mapped[str] = mapped_column(String(10))
     weather: Mapped[str] = mapped_column(String(20))
     road_state: Mapped[str] = mapped_column(String(10))
-    heavy_traffic: Mapped[bool] = mapped_column(Boolean, default=False)
     heavy_traffic: Mapped[bool] = mapped_column(Boolean, default=False)
     latitude: Mapped[float | None] = mapped_column(Float, nullable=True)
     longitude: Mapped[float | None] = mapped_column(Float, nullable=True)

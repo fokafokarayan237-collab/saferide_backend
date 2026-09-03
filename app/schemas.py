@@ -1,6 +1,6 @@
 from datetime import datetime
 from enum import Enum
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, EmailStr, Field
 
 
 # --- Enums : doivent rester synchronisés avec lib/models/trip_conditions.dart ---
@@ -66,6 +66,12 @@ class RiskResultOut(BaseModel):
 class LoginIn(BaseModel):
     phone: str
     password: str
+
+
+class RegisterIn(BaseModel):
+    phone: str
+    password: str
+    email: EmailStr | None = None
 
 
 class LoginOut(BaseModel):
