@@ -2,7 +2,7 @@ import json
 from collections import Counter
 from datetime import datetime, timedelta, timezone
 
-from fastapi import APIRouter, Depends
+from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.orm import Session
 
 from app.database import get_db
@@ -12,18 +12,18 @@ from app.schemas import AdminStatsOut, DailyCountOut, FactorFrequencyOut
 
 router = APIRouter(prefix="/admin", tags=["admin"])
 
-# ⚠️ Limite connue (MVP) : il n'existe pas encore de rôle "administrateur"
-# sur le modèle User — n'importe quel utilisateur authentifié peut
-# actuellement consulter les statistiques globales. Avant mise en
-# production, ajouter un champ `is_admin` sur `User` et vérifier ici
-# `current_user.is_admin`, sinon lever une HTTPException(403).
-
 
 @router.get("/stats", response_model=AdminStatsOut)
 def get_stats(
     current_user: User = Depends(get_current_user),
     db: Session = Depends(get_db),
 ) -> AdminStatsOut:
+    if not current_user.is_admin:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Accès réservé aux administrateurs.",
+        )
+
     since = datetime.now(timezone.utc) - timedelta(days=7)
     evaluations = (
         db.query(Evaluation).filter(Evaluation.evaluated_at >= since).all()

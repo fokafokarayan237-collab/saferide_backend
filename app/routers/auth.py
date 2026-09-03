@@ -29,7 +29,7 @@ def register(credentials: RegisterIn, db: Session = Depends(get_db)) -> LoginOut
     db.commit()
 
     token = create_access_token(subject=user.phone)
-    return LoginOut(access_token=token)
+    return LoginOut(access_token=token, is_admin=user.is_admin)
 
 
 @router.post("/login", response_model=LoginOut)
@@ -39,4 +39,4 @@ def login(credentials: LoginIn, db: Session = Depends(get_db)) -> LoginOut:
         raise HTTPException(status_code=401, detail="Numéro ou mot de passe incorrect.")
 
     token = create_access_token(subject=user.phone)
-    return LoginOut(access_token=token)
+    return LoginOut(access_token=token, is_admin=user.is_admin)
