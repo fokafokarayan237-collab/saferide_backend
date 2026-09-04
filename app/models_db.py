@@ -23,6 +23,26 @@ class User(Base):
     )
 
 
+class OtpCode(Base):
+    """Code de vérification à 6 chiffres (inscription ou connexion).
+
+    MODE TEST : le code n'est pas envoyé par SMS, il est renvoyé directement
+    dans la réponse de l'API pour que l'app puisse l'afficher à l'écran.
+    """
+
+    __tablename__ = "otp_codes"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True, index=True)
+    phone: Mapped[str] = mapped_column(String(20), index=True)
+    code: Mapped[str] = mapped_column(String(6))
+    purpose: Mapped[str] = mapped_column(String(20))  # "register" ou "login"
+    used: Mapped[bool] = mapped_column(Boolean, default=False)
+    expires_at: Mapped[datetime] = mapped_column(DateTime)
+    created_at: Mapped[datetime] = mapped_column(
+        DateTime, default=lambda: datetime.now(timezone.utc)
+    )
+
+
 class Evaluation(Base):
     """Une évaluation de risque enregistrée pour un utilisateur donné."""
 

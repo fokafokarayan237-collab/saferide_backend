@@ -80,6 +80,22 @@ class LoginOut(BaseModel):
     is_admin: bool = False
 
 
+class OtpRequiredOut(BaseModel):
+    """Renvoyé après register/login : un code de vérification doit être saisi.
+
+    MODE TEST : test_code contient le code en clair pour que l'app puisse
+    l'afficher à l'écran (pas de vrai SMS envoyé pour l'instant).
+    """
+    message: str
+    phone: str
+    test_code: str
+
+
+class OtpVerifyIn(BaseModel):
+    phone: str
+    code: str
+
+
 # --- Admin (statistiques agrégées) ---
 
 class DailyCountOut(BaseModel):
