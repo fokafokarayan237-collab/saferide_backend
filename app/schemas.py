@@ -55,6 +55,7 @@ class RiskFactorOut(BaseModel):
 
 
 class RiskResultOut(BaseModel):
+    int: id
     score: float = Field(ge=0.0, le=1.0)
     level: RiskLevel
     factors: list[RiskFactorOut]
