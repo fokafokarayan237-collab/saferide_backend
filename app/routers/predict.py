@@ -6,7 +6,7 @@ from sqlalchemy.orm import Session
 from app.database import get_db
 from app.deps import get_current_user
 from app.models_db import Evaluation, User
-from app.schemas import RiskResultOut, TripConditionsIn
+from app.schemas import RiskFactorOut, RiskResultOut, TripConditionsIn
 from app.services.risk_model import compute_risk
 
 router = APIRouter(prefix="/predict", tags=["risque"])
@@ -38,5 +38,12 @@ def predict_risk(
     )
     db.add(evaluation)
     db.commit()
+    db.refresh(evaluation)  # récupère l'id généré par la base
 
-    return result
+    return RiskResultOut(
+        id=evaluation.id,
+        score=result.score,
+        level=result.level,
+        factors=[RiskFactorOut(**f.model_dump()) for f in result.factors],
+        evaluated_at=result.evaluated_at,
+    )
