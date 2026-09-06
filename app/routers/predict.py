@@ -22,7 +22,7 @@ def predict_risk(
     Calcule le risque pour les conditions données et enregistre
     l'évaluation dans l'historique de l'utilisateur connecté.
     """
-    result = compute_risk(conditions)
+    result = compute_risk(conditions) 
 
     evaluation = Evaluation(
         user_id=current_user.id,
