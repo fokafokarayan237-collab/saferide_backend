@@ -114,3 +114,33 @@ class AdminStatsOut(BaseModel):
     high_risk_percentage: float = Field(ge=0.0, le=100.0)
     daily_counts: list[DailyCountOut]  # 7 derniers jours, dans l'ordre chronologique
     top_factors: list[FactorFrequencyOut]
+
+# --- À ajouter à la fin de app/schemas.py -----------------------------
+# (réutilise les enums VehicleType, TimeOfDay, WeatherCondition,
+# RoadState, RiskLevel déjà définis plus haut dans ce fichier)
+
+
+class IncidentReportIn(BaseModel):
+    vehicle_type: VehicleType
+    time_of_day: TimeOfDay
+    weather: WeatherCondition
+    road_state: RoadState
+    heavy_traffic: bool = False
+    had_accident: bool
+    severity: RiskLevel | None = None
+    description: str | None = None
+    latitude: float | None = None
+    longitude: float | None = None
+
+
+class IncidentReportOut(BaseModel):
+    id: int
+    vehicle_type: str
+    time_of_day: str
+    weather: str
+    road_state: str
+    heavy_traffic: bool
+    had_accident: bool
+    severity: str | None
+    description: str | None
+    reported_at: datetime

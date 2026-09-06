@@ -2,7 +2,7 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
 from app.database import Base, engine
-from app.routers import admin, auth, history, predict
+from app.routers import admin, auth, history, incidents, predict
 
 # Crée les tables MySQL si elles n'existent pas encore.
 # Pour un vrai projet en évolution, remplacer par des migrations Alembic.
@@ -26,6 +26,7 @@ app.include_router(auth.router)
 app.include_router(predict.router)
 app.include_router(history.router)
 app.include_router(admin.router)
+app.include_router(incidents.router)
 
 
 @app.get("/health", tags=["système"])

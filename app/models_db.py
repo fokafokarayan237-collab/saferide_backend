@@ -21,6 +21,9 @@ class User(Base):
     evaluations: Mapped[list["Evaluation"]] = relationship(
         back_populates="user", cascade="all, delete-orphan"
     )
+    incident_reports: Mapped[list["IncidentReport"]] = relationship(
+        back_populates="user", cascade="all, delete-orphan"
+    )
 
 
 class OtpCode(Base):
@@ -69,3 +72,38 @@ class Evaluation(Base):
     )
 
     user: Mapped["User"] = relationship(back_populates="evaluations")
+
+
+class IncidentReport(Base):
+    """Signalement d'un incident réel par un utilisateur (accident ou
+    quasi-accident), avec les conditions au moment des faits.
+
+    Objectif : constituer un jeu de données local camerounais pour
+    ré-entraîner le modèle ML avec de vraies observations, en
+    complément (ou remplacement) des datasets Kaggle génériques.
+    """
+
+    __tablename__ = "incident_reports"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True, index=True)
+    user_id: Mapped[int] = mapped_column(ForeignKey("users.id"), index=True)
+
+    # Conditions au moment des faits (même vocabulaire que Evaluation)
+    vehicle_type: Mapped[str] = mapped_column(String(20))
+    time_of_day: Mapped[str] = mapped_column(String(10))
+    weather: Mapped[str] = mapped_column(String(20))
+    road_state: Mapped[str] = mapped_column(String(10))
+    heavy_traffic: Mapped[bool] = mapped_column(Boolean, default=False)
+    latitude: Mapped[float | None] = mapped_column(Float, nullable=True)
+    longitude: Mapped[float | None] = mapped_column(Float, nullable=True)
+
+    # Ce qui s'est réellement passé
+    had_accident: Mapped[bool] = mapped_column(Boolean)
+    severity: Mapped[str | None] = mapped_column(String(10), nullable=True)  # faible/modere/eleve, si accident
+    description: Mapped[str | None] = mapped_column(String(500), nullable=True)
+
+    reported_at: Mapped[datetime] = mapped_column(
+        DateTime, default=lambda: datetime.now(timezone.utc)
+    )
+
+    user: Mapped["User"] = relationship(back_populates="incident_reports")
