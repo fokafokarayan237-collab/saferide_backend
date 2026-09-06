@@ -97,6 +97,16 @@ class OtpVerifyIn(BaseModel):
     code: str
 
 
+class ForgotPasswordIn(BaseModel):
+    phone: str
+
+
+class ResetPasswordIn(BaseModel):
+    phone: str
+    code: str
+    new_password: str
+
+
 # --- Admin (statistiques agrégées) ---
 
 class DailyCountOut(BaseModel):

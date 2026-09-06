@@ -6,7 +6,15 @@ from sqlalchemy.orm import Session
 
 from app.database import get_db
 from app.models_db import OtpCode, User
-from app.schemas import LoginIn, LoginOut, OtpRequiredOut, OtpVerifyIn, RegisterIn
+from app.schemas import (
+    ForgotPasswordIn,
+    LoginIn,
+    LoginOut,
+    OtpRequiredOut,
+    OtpVerifyIn,
+    RegisterIn,
+    ResetPasswordIn,
+)
 from app.security import create_access_token, hash_password, verify_password
 
 router = APIRouter(prefix="/auth", tags=["auth"])
@@ -29,6 +37,25 @@ def _create_otp(db: Session, phone: str, purpose: str) -> str:
     db.add(otp)
     db.commit()
     return code
+
+
+def _consume_otp(db: Session, phone: str, code: str) -> OtpCode:
+    """Vérifie un code OTP (quel que soit son purpose) et le marque comme
+    utilisé. Lève une HTTPException 401 si invalide ou expiré."""
+    otp = (
+        db.query(OtpCode)
+        .filter(OtpCode.phone == phone, OtpCode.code == code, OtpCode.used == False)  # noqa: E712
+        .order_by(OtpCode.id.desc())
+        .first()
+    )
+    if otp is None:
+        raise HTTPException(status_code=401, detail="Code invalide.")
+    if otp.expires_at < datetime.utcnow():
+        raise HTTPException(status_code=401, detail="Code expiré, redemande un code.")
+
+    otp.used = True
+    db.commit()
+    return otp
 
 
 @router.post("/register", response_model=OtpRequiredOut)
@@ -74,23 +101,45 @@ def login(credentials: LoginIn, db: Session = Depends(get_db)) -> OtpRequiredOut
 
 @router.post("/verify-otp", response_model=LoginOut)
 def verify_otp(data: OtpVerifyIn, db: Session = Depends(get_db)) -> LoginOut:
-    otp = (
-        db.query(OtpCode)
-        .filter(OtpCode.phone == data.phone, OtpCode.code == data.code, OtpCode.used == False)  # noqa: E712
-        .order_by(OtpCode.id.desc())
-        .first()
-    )
-    if otp is None:
-        raise HTTPException(status_code=401, detail="Code invalide.")
-    if otp.expires_at < datetime.utcnow():
-        raise HTTPException(status_code=401, detail="Code expiré, redemande un code.")
-
-    otp.used = True
-    db.commit()
+    _consume_otp(db, data.phone, data.code)
 
     user = db.query(User).filter(User.phone == data.phone).first()
     if user is None:
         raise HTTPException(status_code=404, detail="Utilisateur introuvable.")
+
+    token = create_access_token(subject=user.phone)
+    return LoginOut(access_token=token, is_admin=user.is_admin)
+
+
+@router.post("/forgot-password", response_model=OtpRequiredOut)
+def forgot_password(data: ForgotPasswordIn, db: Session = Depends(get_db)) -> OtpRequiredOut:
+    """Envoie un code de vérification permettant de réinitialiser le
+    mot de passe. Nécessite un compte existant avec ce numéro."""
+    user = db.query(User).filter(User.phone == data.phone).first()
+    if user is None:
+        raise HTTPException(status_code=404, detail="Aucun compte trouvé avec ce numéro.")
+
+    code = _create_otp(db, user.phone, purpose="reset_password")
+    return OtpRequiredOut(
+        message="Entre le code reçu pour choisir un nouveau mot de passe.",
+        phone=user.phone,
+        test_code=code,
+    )
+
+
+@router.post("/reset-password", response_model=LoginOut)
+def reset_password(data: ResetPasswordIn, db: Session = Depends(get_db)) -> LoginOut:
+    """Vérifie le code envoyé par /forgot-password, définit le nouveau
+    mot de passe, et connecte directement l'utilisateur (comme après un
+    verify-otp classique)."""
+    _consume_otp(db, data.phone, data.code)
+
+    user = db.query(User).filter(User.phone == data.phone).first()
+    if user is None:
+        raise HTTPException(status_code=404, detail="Utilisateur introuvable.")
+
+    user.hashed_password = hash_password(data.new_password)
+    db.commit()
 
     token = create_access_token(subject=user.phone)
     return LoginOut(access_token=token, is_admin=user.is_admin)
