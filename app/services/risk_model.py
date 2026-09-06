@@ -3,23 +3,24 @@ Service d'évaluation du risque routier.
 
 Deux modes, sélectionnés automatiquement :
 1. Modèle ML (Random Forest, scikit-learn) si un fichier de modèle
-   entraîné est trouvé à MODEL_PATH — c'est le mode prévu à terme.
+   entraîné est trouvé à MODEL_PATH.
 2. Repli sur un scoring à base de règles pondérées si aucun modèle
-   n'est présent (ex : avant l'entraînement, ou pendant les tests).
-
-⚠️ Le modèle actuellement livré (s'il est présent) a été entraîné sur
-des données SYNTHÉTIQUES générées par generate_synthetic_data.py, pour
-valider le pipeline de bout en bout. Il doit être ré-entraîné sur les
-vrais datasets (Kaggle + données locales camerounaises, cf. Phase 1/3
-du projet) avant toute mise en production. Voir saferide_ml/README.md.
+   n'est présent — c'est le mode actif actuellement (cf. décision
+   documentée dans le rapport : le dataset Kaggle testé ne présente
+   pas de lien statistique exploitable entre conditions et gravité).
 
 L'explication des facteurs (les 3 conditions les plus déterminantes)
-reste calculée par les règles pondérées dans les deux modes : extraire
-une explication par prédiction individuelle depuis une forêt aléatoire
-demanderait un outil dédié (ex: SHAP), hors périmètre du MVP.
+reste calculée par les règles pondérées dans les deux modes.
+
+NOTE : cette fonction ne connaît pas l'identifiant de l'évaluation en
+base (id) — c'est un détail de persistance qui n'existe qu'une fois la
+ligne insérée. C'est à l'appelant (app/routers/predict.py) d'ajouter
+l'id après l'enregistrement en base, pour construire le RiskResultOut
+final renvoyé au client.
 """
 
 import os
+from dataclasses import dataclass
 from datetime import datetime, timezone
 from pathlib import Path
 
@@ -29,7 +30,6 @@ import pandas as pd
 from app.schemas import (
     RiskFactorOut,
     RiskLevel,
-    RiskResultOut,
     RoadState,
     TimeOfDay,
     TripConditionsIn,
@@ -85,6 +85,15 @@ _TIME_LABEL = {
     TimeOfDay.jour: "Conduite de jour",
     TimeOfDay.nuit: "Faible éclairage (nuit)",
 }
+
+
+@dataclass
+class RiskComputation:
+    """Résultat brut du calcul de risque, sans id (pas encore en base)."""
+    score: float
+    level: RiskLevel
+    factors: list[RiskFactorOut]
+    evaluated_at: datetime
 
 
 def _level_from_score(score: float) -> RiskLevel:
@@ -147,14 +156,14 @@ def _explanation_factors(conditions: TripConditionsIn) -> list[RiskFactorOut]:
     ]
 
 
-def compute_risk(conditions: TripConditionsIn) -> RiskResultOut:
+def compute_risk(conditions: TripConditionsIn) -> RiskComputation:
     if _ml_pipeline is not None:
         score, level = _ml_score_and_level(conditions)
     else:
         score = round(_rule_based_score(conditions), 2)
         level = _level_from_score(score)
 
-    return RiskResultOut(
+    return RiskComputation(
         score=score,
         level=level,
         factors=_explanation_factors(conditions),
