@@ -154,3 +154,36 @@ class IncidentReportOut(BaseModel):
     severity: str | None
     description: str | None
     reported_at: datetime
+
+
+# --- Administration des utilisateurs ---
+
+class UserOut(BaseModel):
+    id: int
+    phone: str
+    email: str | None
+    is_admin: bool
+    created_at: datetime
+
+
+class SetAdminIn(BaseModel):
+    is_admin: bool
+
+
+# --- Profil de l'utilisateur connecté ---
+
+class MeOut(BaseModel):
+    id: int
+    phone: str
+    email: str | None
+    nom: str | None
+    prenom: str | None
+    photo_base64: str | None
+    is_admin: bool
+    created_at: datetime
+
+
+class UpdateProfileIn(BaseModel):
+    nom: str | None = None
+    prenom: str | None = None
+    photo_base64: str | None = None
